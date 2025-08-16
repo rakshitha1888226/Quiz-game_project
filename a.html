@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quiz Game 🤪</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 700px;
+      margin: 2rem auto;
+      background: #f9f9f9;
+      padding: 1rem 2rem;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #2c3e50;
+      text-align: center;
+    }
+    select, button {
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      margin-top: 1rem;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      cursor: pointer;
+    }
+    button:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+    }
+    .question {
+      margin-top: 2rem;
+      padding: 1rem;
+      background: white;
+      border-radius: 5px;
+      box-shadow: 0 0 5px #aaa;
+    }
+    .options {
+      list-style: none;
+      padding: 0;
+    }
+    .options li {
+      background: #ecf0f1;
+      margin: 0.5rem 0;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .options li:hover {
+      background: #bdc3c7;
+    }
+    .correct {
+      background: #2ecc71 !important;
+      color: white;
+      font-weight: bold;
+    }
+    .wrong {
+      background: #e74c3c !important;
+      color: white;
+      font-weight: bold;
+    }
+    .score {
+      font-size: 1.2rem;
+      margin-top: 2rem;
+      text-align: center;
+      font-weight: bold;
+    }
+    .message {
+      font-size: 1.1rem;
+      margin-top: 1rem;
+      text-align: center;
+      font-weight: bold;
+    }
+    #explanation {
+      font-style: italic;
+      margin-top: 0.5rem;
+      color: #34495e;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🎉 Quiz Game</h1>
+
+  <label for="category">Choose a category:</label>
+  <select id="category">
+    <option value="9">General Knowledge</option>
+    <option value="10">Books</option>
+    <option value="11">Film</option>
+    <option value="12">Music</option>
+    <option value="17">Science</option>
+    <option value="18">Computers</option>
+    <option value="19">Mathematics</option>
+    <option value="20">Mythology</option>
+    <option value="21">Sports</option>
+    <option value="22">Geography</option>
+    <option value="23">History</option>
+    <option value="24">Politics</option>
+    <option value="25">Art</option>
+    <option value="26">Celebrities</option>
+    <option value="27">Animals</option>
+    <option value="28">Vehicles</option>
+    <option value="29">Comics</option>
+    <option value="30">Gadgets</option>
+    <option value="31">Anime & Manga</option>
+    <option value="32">Cartoon & Animation</option>
+    <option value="49">Food & Drink</option>
+  </select>
+
+  <button id="startBtn">Start Quiz</button>
+
+  <div id="quizContainer" style="display:none;">
+    <div id="question" class="question"></div>
+    <ul id="options" class="options"></ul>
+    <div id="feedback" class="message"></div>
+    <div id="explanation"></div>
+  </div>
+
+  <div id="score" class="score"></div>
+
+<script>
+  const startBtn = document.getElementById('startBtn');
+  const categorySelect = document.getElementById('category');
+  const quizContainer = document.getElementById('quizContainer');
+  const questionEl = document.getElementById('question');
+  const optionsEl = document.getElementById('options');
+  const feedbackEl = document.getElementById('feedback');
+  const explanationEl = document.getElementById('explanation');
+  const scoreEl = document.getElementById('score');
+
+  let questions = [];
+  let currentQ = 0;
+  let score = 0;
+
+  startBtn.addEventListener('click', () => {
+    const category = categorySelect.value;
+    startBtn.disabled = true;
+    scoreEl.textContent = '';
+    feedbackEl.textContent = '';
+    explanationEl.textContent = '';
+    fetch(`https://opentdb.com/api.php?amount=5&category=${category}&type=multiple`)
+      .then(res => res.json())
+      .then(data => {
+        questions = data.results;
+        currentQ = 0;
+        score = 0;
+        quizContainer.style.display = 'block';
+        showQuestion();
+      })
+      .catch(() => {
+        alert('Failed to fetch questions. Try again later.');
+        startBtn.disabled = false;
+      });
+  });
+
+  function showQuestion() {
+    feedbackEl.textContent = '';
+    explanationEl.textContent = '';
+    const q = questions[currentQ];
+    questionEl.innerHTML = decodeHtml(q.question);
+
+    const correct = decodeHtml(q.correct_answer);
+    const incorrects = q.incorrect_answers.map(ans => decodeHtml(ans));
+    const options = [...incorrects, correct];
+    shuffleArray(options);
+
+    optionsEl.innerHTML = '';
+    options.forEach(option => {
+      const li = document.createElement('li');
+      li.textContent = option;
+      li.onclick = () => selectAnswer(li, correct);
+      optionsEl.appendChild(li);
+    });
+  }
+
+  async function selectAnswer(selectedLi, correct) {
+    const optionsLis = optionsEl.querySelectorAll('li');
+    optionsLis.forEach(li => li.onclick = null);
+
+    if (selectedLi.textContent === correct) {
+      selectedLi.classList.add('correct');
+      score++;
+      feedbackEl.textContent = '🎉 Hooray! Correct answer!';
+      feedbackEl.style.color = '#27ae60';
+      explanationEl.textContent = '';
+    } else {
+      selectedLi.classList.add('wrong');
+      feedbackEl.textContent = '😞 Oops! Better luck next time.';
+      feedbackEl.style.color = '#c0392b';
+
+      optionsLis.forEach(li => {
+        if (li.textContent === correct) li.classList.add('correct');
+      });
+
+      explanationEl.textContent = '💡 Fetching explanation...';
+      const explanation = await fetchWikipediaExplanation(correct);
+      explanationEl.textContent = "💡 Explanation: " + explanation;
+    }
+
+    setTimeout(() => {
+      currentQ++;
+      explanationEl.textContent = '';
+      if (currentQ < questions.length) {
+        showQuestion();
+      } else {
+        quizContainer.style.display = 'none';
+        showFinalScore();
+        startBtn.disabled = false;
+      }
+    }, 4000);
+  }
+
+  function showFinalScore() {
+    let emoji = '';
+    let message = '';
+
+    if (score === questions.length) {
+      emoji = '🏆🎉';
+      message = "Perfect score! You're a quiz master!";
+    } else if (score >= questions.length * 0.7) {
+      emoji = '🎉👍';
+      message = "Great job! You really know your stuff!";
+    } else if (score >= questions.length * 0.4) {
+      emoji = '🙂';
+      message = "Not bad! Keep practicing!";
+    } else if (score === 1) {
+      emoji = '😕';
+      message = "Only one? Don't worry, try again!";
+    } else {
+      emoji = '😞';
+      message = "Better luck next time! Keep learning!";
+    }
+
+    scoreEl.innerHTML = `🏁 Quiz finished! You scored ${score}/${questions.length} ${emoji}<br>${message}`;
+  }
+
+  function decodeHtml(html) {
+    const txt = document.createElement("textarea");
+    txt.innerHTML = html;
+    return txt.value;
+  }
+
+  function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+  }
+
+  function fetchWikipediaExplanation(term) {
+    const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(term)}`;
+    return fetch(url)
+      .then(res => {
+        if (!res.ok) throw new Error('No Wikipedia page found');
+        return res.json();
+      })
+      .then(data => {
+        if (data.extract) {
+          return data.extract;
+        }
+        return "No explanation found.";
+      })
+      .catch(() => "No explanation available.");
+  }
+</script>
+
+</body>
+</html>
